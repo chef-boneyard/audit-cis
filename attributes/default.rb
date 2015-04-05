@@ -18,3 +18,4 @@
 #
 
 default['audit-cis']['configuration-profile'] = 2
+default['audit-cis']['ipv6'] = false

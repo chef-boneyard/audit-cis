@@ -18,8 +18,9 @@
 # limitations under the License.
 #
 # `node` is not available in the audit DSL, so let's set a local
-# variable to check
-level_two_enabled = node['audit-cis']['configuration-profile'].to_i >= 2
+# variable to check these attributes as flags
+level_two_enabled = AuditCIS.profile_level_two?(node)
+ipv6_disabled     = false #AuditCIS.ipv6_disabled?(node)
 
 control_group '1 Install Updates, Patches and Additional Security Software' do
   control '1.1 Filesystem Configuration' do
@@ -362,74 +363,277 @@ control_group '2 OS Services' do
 end
 
 control_group '3 Special Purpose Services' do
-  control '3.1 Set Daemon umask'
-  control '3.2 Remove the X Window System'
-  control '3.3 Disable Avahi Server'
-  control '3.4 Disable Print Server - CUPS'
-  control '3.5 Remove DHCP Server'
-  control '3.6 Configure Network Time Protocol (NTP)'
-  control '3.7 Remove LDAP'
-  control '3.8 Disable NFS and RPC'
-  control '3.9 Remove DNS Server'
-  control '3.10 Remove FTP Server'
-  control '3.11 Remove HTTP Server'
-  control '3.12 Remove Dovecot (IMAP and POP3 services)'
-  control '3.13 Remove Samba'
-  control '3.14 Remove HTTP Proxy Server'
-  control '3.15 Remove SNMP Server'
-  control '3.16 Configure Mail Transfer Agent for Local-Only Mode'
+  control '3.1 Set Daemon umask' do
+    it 'sets the umask in system-wide init config' do
+      expect(file('/etc/sysconfig/init')).to contain('umask 027')
+    end
+  end
+
+  control '3.2 Remove the X Window System' do
+    it 'disables the graphical.target service' do
+      expect(service('graphical.target')).to_not be_running
+      expect(service('graphical.target')).to_not be_enabled
+      expect(file('/usr/lib/systemd/system/default.target')).to_not be_linked_to('graphical.target')
+    end
+
+    it 'does not have the xorg-x11-server-common package installed' do
+      expect(package('xorg-x11-server-common')).to_not be_installed
+    end
+  end
+
+  control '3.3 Disable Avahi Server' do
+    it 'disables the avahi-daemon service' do
+      expect(service('avahi-daemon')).to_not be_running
+      expect(service('avahi-daemon')).to_not be_enabled
+    end
+  end
+
+  control '3.4 Disable Print Server - CUPS' do
+    it 'disables the cups service' do
+      expect(service('cups')).to_not be_running
+      expect(service('cups')).to_not be_enabled
+    end
+  end
+
+  control '3.5 Remove DHCP Server' do
+    it 'does not have the dhcp package installed' do
+      expect(package('dhcp')).to_not be_installed
+    end
+  end
+
+  control '3.6 Configure Network Time Protocol (NTP)' do
+    let(:ntp_conf) { file('/etc/ntp.conf') }
+
+    it 'has the ntp package installed' do
+      expect(package('ntp')).to be_installed
+    end
+
+    it 'has the restrict parameters in the ntp config' do
+      expect(ntp_conf).to match(/restrict default/)
+      expect(ntp_conf).to match(/restrict -6 default/)
+    end
+
+    it 'has at least one NTP server defined' do
+      expect(ntp_conf).to match(/server/)
+    end
+
+    it 'is configured to start ntpd as a nonprivileged user' do
+      expect(file('/etc/sysconfig/ntpd')).to match(/OPTIONS=.*-u /)
+    end
+  end
+
+  control '3.7 Remove LDAP' do
+    it 'does not have the openldap-servers package installed' do
+      expect(package('openldap-servers')).to_not be_installed
+    end
+
+    it 'does not have the openldap-clients package installed' do
+      expect(package('openldap-clients')).to_not be_installed
+    end
+  end
+
+  control '3.8 Disable NFS and RPC' do
+    it 'disables the nfslock service' do
+      expect(service('nfslock')).to_not be_running
+      expect(service('nfslock')).to_not be_enabled
+    end
+
+    it 'disables the rpcgssd service' do
+      expect(service('rpcgssd')).to_not be_running
+      expect(service('rpcgssd')).to_not be_enabled
+    end
+
+    it 'disables the rpcbind service' do
+      expect(service('rpcbind')).to_not be_running
+      expect(service('rpcbind')).to_not be_enabled
+    end
+
+    it 'disables the rpcidmapd service' do
+      expect(service('rpcidmapd')).to_not be_running
+      expect(service('rpcidmapd')).to_not be_enabled
+    end
+
+    it 'disables the rpcsvcgssd service' do
+      expect(service('rpcsvcgssd')).to_not be_running
+      expect(service('rpcsvcgssd')).to_not be_enabled
+    end
+  end
+
+  control '3.9 Remove DNS Server' do
+    it 'does not have the bind package installed' do
+      expect(package('bind')).to_not be_intalled
+    end
+  end
+
+  control '3.10 Remove FTP Server' do
+    it 'does not have the vsftpd package installed' do
+      expect(package('vsftpd')).to_not be_installed
+    end
+  end
+
+  control '3.11 Remove HTTP Server' do
+    it 'does not have the httpd package installed' do
+      expect(package('httpd')).to_not be_installed
+    end
+  end
+
+  control '3.12 Remove Dovecot (IMAP and POP3 services)' do
+    it 'does not have the dovecot package installed' do
+      expect(package('dovecot')).to_not be_installed
+    end
+  end
+
+  control '3.13 Remove Samba'  do
+    it 'does not have the samba package installed' do
+      expect(package('samba')).to_not be_installed
+    end
+  end
+
+  control '3.14 Remove HTTP Proxy Server' do
+    it 'does not have the squid package installed' do
+      expect(package('squid')).to_not be_installed
+    end
+  end
+
+  control '3.15 Remove SNMP Server' do
+    it 'does not have the net-snmp package installed' do
+      expect(package('net-snmp')).to_not be_installed
+    end
+  end
+
+  control '3.16 Configure Mail Transfer Agent for Local-Only Mode' do
+    it 'listens on port 25 only on the loopback address' do
+      expect(port(25)).to be_listening.on('127.0.0.1')
+    end
+  end
 end
 
 control_group '4 Network Configuration and Firewalls' do
+  ::RSpec.configure do |c|
+    c.filter_run focus: true
+  end
+
   control '4.1 Modify Network Parameters (Host Only)' do
-    it '4.1.1 Disable IP Forwarding'
-    it '4.1.2 Disable Send Packet Redirects'
+    it '4.1.1 Disable IP Forwarding' do
+      expect(command('/sbin/sysctl net.ipv4.ip_forward').stdout).to match(/^net.ipv4.ip_forward = 0/)
+    end
+
+    it '4.1.2 Disable Send Packet Redirects' do
+      expect(command('/sbin/sysctl net.ipv4.conf.all.send_redirects').stdout).to match(/^net.ipv4.conf.all.send_redirects = 0/)
+      expect(command('/sbin/sysctl net.ipv4.conf.default.send_redirects').stdout).to match(/^net.ipv4.conf.default.send_redirects = 0/)
+    end
   end
 
   control '4.2 Modify Network Parameters (Host and Router)' do
     context 'Level 1' do
-      it '4.2.1 Disable Source Routed Packet Acceptance'
-      it '4.2.2 Disable ICMP Redirect Acceptance'
-      it '4.2.3 Disable Secure ICMP Redirect Acceptance'
-      it '4.2.4 Log Suspicious Packets'
-      it '4.2.5 Enable Ignore Broadcast Requests'
-      it '4.2.6 Enable Bad Error Message Protection'
-      it '4.2.8 Enable TCP SYN Cookies'
+      it '4.2.1 Disable Source Routed Packet Acceptance' do
+        expect(command('/sbin/sysctl net.ipv4.conf.all.accept_source_route').stdout).to match(/^net.ipv4.conf.all.accept_source_route = 0/)
+        expect(command('/sbin/sysctl net.ipv4.conf.default.accept_source_route').stdout).to match(/^net.ipv4.conf.default.accept_source_route = 0/)
+      end
+
+      it '4.2.2 Disable ICMP Redirect Acceptance' do
+        expect(command('/sbin/sysctl net.ipv4.conf.all.accept_redirects').stdout).to match(/^net.ipv4.conf.all.accept_redirects = 0/)
+        expect(command('/sbin/sysctl net.ipv4.conf.default.accept_redirects').stdout).to match(/^net.ipv4.conf.default.accept_redirects = 0/)
+      end
+
+      it '4.2.3 Disable Secure ICMP Redirect Acceptance' do
+        expect(command('/sbin/sysctl net.ipv4.conf.all.secure_redirects').stdout).to match(/^net.ipv4.conf.all.secure_redirects = 0/)
+        expect(command('/sbin/sysctl net.ipv4.conf.default.secure_redirects').stdout).to match(/^net.ipv4.conf.default.secure_redirects = 0/)
+      end
+
+      it '4.2.4 Log Suspicious Packets' do
+        expect(command('/sbin/sysctl net.ipv4.conf.all.log_martians').stdout).to match(/^net.ipv4.conf.all.log_martians = 1/)
+        expect(command('/sbin/sysctl net.ipv4.conf.default.log_martians').stdout).to match(/^net.ipv4.conf.default.log_martians = 1/)
+      end
+
+      it '4.2.5 Enable Ignore Broadcast Requests' do
+        expect(command('/sbin/sysctl net.ipv4.icmp_echo_ignore_broadcasts').stdout).to match(/^net.ipv4.icmp_echo_ignore_broadcasts = 1/)
+      end
+
+      it '4.2.6 Enable Bad Error Message Protection' do
+        expect(command('/sbin/sysctl net.ipv4.icmp_ignore_bogus_error_responses').stdout).to match(/^net.ipv4.icmp_ignore_bogus_error_responses = 1/)
+      end
+
+      it '4.2.8 Enable TCP SYN Cookies' do
+        expect(command('/sbin/sysctl net.ipv4.tcp_syncookies').stdout).to match(/^net.ipv4.tcp_syncookies = 1/)
+      end
     end
 
     context 'Level 2' do
-      it '4.2.7 Enable RFC-recommended Source Route Validation'
+      it '4.2.7 Enable RFC-recommended Source Route Validation' do
+        expect(command('/sbin/sysctl net.ipv4.conf.all.rp_filter').stdout).to match(/^net.ipv4.conf.all.rp_filter = 1/)
+      end
     end if level_two_enabled
   end
 
   control '4.3 Wireless Networking' do
-    it '4.3.1 Deactivate Wireless Interfaces'
+    it '4.3.1 Deactivate Wireless Interfaces' do
+      expect(command('/sbin/ip link show up').stdout).to_not match(/: wl.*UP/)
+    end
   end
 
   control '4.4 IPv6' do
     context '4.4.1 Configure IPv6' do
-      it '4.4.1.1 Disable IPv6 Router Advertisements'
-      it '4.4.1.2 Disable IPv6 Redirect Acceptance'
-    end
+      it '4.4.1.1 Disable IPv6 Router Advertisements' do
+        expect(command('/sbin/sysctl net.ipv6.conf.all.accept_ra').stdout).to match(/^net.ipv6.conf.all.accept_ra = 0/)
+        expect(command('/sbin/sysctl net.ipv6.conf.default.accept_ra').stdout).to match(/^net.ipv6.conf.default.accept_ra = 0/)
+      end
+
+      it '4.4.1.2 Disable IPv6 Redirect Acceptance' do
+        expect(command('/sbin/sysctl net.ipv6.conf.all.accept_redirects').stdout).to match(/^net.ipv6.conf.all.accept_redirects = 0/)
+        expect(command('/sbin/sysctl net.ipv6.conf.default.accept_redirects').stdout).to match(/^net.ipv6.conf.default.accept_redirects = 0/)
+      end
+    end unless ipv6_disabled
 
     context '4.4.2 Disable IPv6' do
-      it 'Disables IPv6'
-    end
+      it 'Disables IPv6' do
+        expect(command('/sbin/sysctl net.ipv6.conf.all.disable_ipv6').stdout).to match(/^net.ipv6.conf.all.disable_ipv6 = 1/)
+        expect(command('/sbin/sysctl net.ipv6.conf.default.disable_ipv6').stdout).to match(/^net.ipv6.conf.default.disable_ipv6 = 1/)
+      end
+    end if ipv6_disabled
   end
 
   control '4.5 Install TCP Wrappers' do
-    it '4.5.1 Install TCP Wrappers'
-    it '4.5.2 Create /etc/hosts.allow'
-    it '4.5.3 Verify Permissions on /etc/hosts.allow'
-    it '4.5.4 Create /etc/hosts.deny'
-    it '4.5.5 Verify Permissions on /etc/hosts.deny'
+    it '4.5.1 Install TCP Wrappers' do
+      expect(package('tcp_wrappers')).to be_installed
+    end
+
+    it '4.5.2 Create /etc/hosts.allow' do
+      expect(file('/etc/hosts.allow')).to be_file
+    end
+
+    it '4.5.3 Verify Permissions on /etc/hosts.allow' do
+      expect(file('/etc/hosts.allow')).to be_mode(644)
+    end
+
+    it '4.5.4 Create /etc/hosts.deny' do
+      expect(file('/etc/hosts.deny')).to be_file
+      expect(file('/etc/hosts.deny')).to contain('ALL: ALL')
+    end
+
+    it '4.5.5 Verify Permissions on /etc/hosts.deny' do
+      expect(file('/etc/hosts.deny')).to be_mode(644)
+    end
   end
 
-  control '4.6 Uncommon Network Protocols' do
-    it '4.6.1 Disable DCCP'
-    it '4.6.2 Disable SCTP'
-    it '4.6.3 Disable RDS'
-    it '4.6.4 Disable TIPC'
+  control '4.6 Uncommon Network Protocols' , focus:true do
+    let(:lsmod) { command('/sbin/lsmod') }
+
+    it '4.6.1 Disable DCCP' do
+      expect(lsmod.stdout).to_not match(/dccp/)
+    end
+
+    it '4.6.2 Disable SCTP' do
+      expect(lsmod.stdout).to_not match(/sctp/)
+    end
+
+    it '4.6.3 Disable RDS' do
+      expect(lsmod.stdout).to_not match(/rds/)
+    end
+
+    it '4.6.4 Disable TIPC' do
+      expect(lsmod.stdout).to_not match(/tipc/)
+    end
   end
 
   control '4.7 Enable firewalld' do
