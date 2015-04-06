@@ -912,6 +912,7 @@ end
 control_group '7 User Accounts and Environment' do
   control '7.1 Set Shadow Password Suite Parameters (/etc/login.defs)' do
     let(:login_defs) { file('/etc/login.defs') }
+
     it '7.1.1 Set Password Expiration Days' do
       expect(login_defs.content).to match(/^PASS_MAX_DAYS\s+[1-9]{2}/)
     end
@@ -958,9 +959,52 @@ control_group '7 User Accounts and Environment' do
 end
 
 control_group '8 Warning Banners' do
-  control '8.1 Set Warning Banner for Standard Login Services'
-  control '8.2 Remove OS Information from Login Warning Banners'
-  control '8.3 Set GNOME Warning Banner'
+  let(:motd)      { file('/etc/motd')      }
+  let(:issue)     { file('/etc/issue')     }
+  let(:issue_net) { file('/etc/issue.net') }
+
+  control '8.1 Set Warning Banner for Standard Login Services' do
+    it 'has /etc/motd' do
+      expect(motd).to be_file
+      expect(motd).to be_mode(644)
+      expect(motd).to be_owned_by('root')
+      expect(motd).to be_grouped_into('root')
+    end
+
+    it 'has /etc/issue' do
+      expect(issue).to be_file
+      expect(issue).to be_mode(644)
+      expect(issue).to be_owned_by('root')
+      expect(issue).to be_grouped_into('root')
+    end
+
+    it 'has /etc/issue.net' do
+      expect(issue_net).to be_file
+      expect(issue_net).to be_mode(644)
+      expect(issue_net).to be_owned_by('root')
+      expect(issue_net).to be_grouped_into('root')
+    end
+  end
+
+  control '8.2 Remove OS Information from Login Warning Banners' do
+    it '/etc/motd does not contain OS information' do
+      expect(motd.content).to_not match(/(\\v|\\r|\\m|\\[Ss])/)
+    end
+
+    it '/etc/issue does not contain OS information' do
+      expect(issue.content).to_not match(/(\\v|\\r|\\m|\\[Ss])/)
+    end
+
+    it '/etc/issue.net does not contain OS information' do
+      expect(issue_net.content).to_not match(/(\\v|\\r|\\m|\\[Ss])/)
+    end
+  end
+
+  control '8.3 Set GNOME Warning Banner' do
+    it 'has a value set for the warning banner' do
+      expect(command('gconftool-2 --get /apps/gdm/simple-greeter/banner_message_text').stdout).to_not match(/^No value set for.*/)
+    end
+  end
 end
 
 control_group '9 System Maintenance' do
@@ -1011,20 +1055,49 @@ control_group '9 System Maintenance' do
         expect(group).to be_grouped_into('root')
       end
 
-      it '9.1.10 Find World Writable Files'
+      it '9.1.10 Find World Writable Files' do
+        expect(command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev -type f -perm -0002').stdout).to be_empty
+      end
 
-      it '9.1.11 Find Un-owned Files and Directories'
+      it '9.1.11 Find Un-owned Files and Directories' do
+        expect(command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev -nouser -ls').stdout).to be_empty
+      end
 
-      it '9.1.12 Find Un-grouped Files and Directories'
+      it '9.1.12 Find Un-grouped Files and Directories' do
+        expect(command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev -nogroup -ls').stdout).to be_empty
+      end
 
-      it '9.1.13 Find SUID System Executables'
+      it '9.1.13 Find SUID System Executables' do
+        expect(command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev -type f -perm -4000 -print').stdout).to be_empty
+      end
 
-      it '9.1.14 Find SGID System Executables'
+      it '9.1.14 Find SGID System Executables' do
+        expect(command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev -type f -perm -2000 -print').stdout).to be_empty
+      end
     end
   end
 
   control '9.2 Review User and Group Settings' do
-    it '9.2.1 Ensure Password Fields are Not Empty'
+    let(:root_path) { command('su - root -c "echo $PATH"') }
+    let(:passwd_uids)  { Etc::Passwd.map {|u| u.uid} }
+    let(:passwd_names) { Etc::Passwd.map {|u| u.name} }
+    let(:passwd_gids)  { Etc::Group.map  {|g| g.gid} }
+    let(:group_names)  { Etc::Group.map  {|g| g.name} }
+
+    let(:user_dirs) do
+      ud = {}
+      Etc::Passwd.each do |u|
+        unless (%w(root halt sync shutdown).include?(u.name) ||
+                u.shell =~ /(\/sbin\/nologin|\/bin\/false)/)
+          ud[u.name] = u.dir
+        end
+      end
+      ud
+    end
+
+    it '9.2.1 Ensure Password Fields are Not Empty' do
+      expect(command('/bin/awk -F: \'($2 == "" ) { print $1 }\' /etc/shadow').stdout).to be_empty
+    end
 
     it '9.2.2 Verify No Legacy "+" Entries Exist in /etc/passwd File' do
       expect(passwd).to_not match(/^\+:/)
@@ -1038,21 +1111,118 @@ control_group '9 System Maintenance' do
       expect(group).to_not match(/^\+:/)
     end
 
-    it '9.2.5 Verify No UID 0 Accounts Exist Other Than root'
-    it '9.2.6 Ensure root PATH Integrity'
-    it '9.2.7 Check Permissions on User Home Directories'
-    it '9.2.8 Check User Dot File Permissions'
-    it '9.2.9 Check Permissions on User .netrc Files'
-    it '9.2.10 Check for Presence of User .rhosts Files'
-    it '9.2.11 Check Groups in /etc/passwd'
-    it '9.2.12 Check That Users Are Assigned Valid Home Directories'
-    it '9.2.13 Check User Home Directory Ownership'
-    it '9.2.14 Check for Duplicate UIDs'
-    it '9.2.15 Check for Duplicate GIDs'
-    it '9.2.16 Check That Reserved UIDs Are Assigned to System Accounts'
-    it '9.2.17 Check for Duplicate User Names'
-    it '9.2.18 Check for Duplicate Group Names'
-    it '9.2.19 Check for Presence of User .netrc Files'
-    it '9.2.20 Check for Presence of User .forward Files'
+    it '9.2.5 Verify No UID 0 Accounts Exist Other Than root' do
+      expect(command('/bin/awk -F: \'($3 == 0) { print $1 }\' /etc/passwd').stdout).to match(/^root$/)
+    end
+
+    it '9.2.6 Ensure root PATH Integrity' do
+      root_path_entries = root_path.stdout.chomp.split(':')
+      expect(root_path.stdout).to_not match(/::/)
+      expect(root_path.stdout).to_not match(/:$/)
+      expect(root_path_entries.include?('.')).to be false
+
+      root_path_entries.each do |dir|
+        dir_path = FileTest.symlink?(dir) ? File.readlink(dir) : dir
+        expect(file(dir_path)).to be_owned_by('root')
+        expect(file(dir_path)).to_not be_writable.by('others')
+        expect(file(dir_path)).to_not be_writable.by('group')
+      end
+    end
+
+    it '9.2.7 Check Permissions on User Home Directories' do
+      user_dirs.each_value do |user_dir|
+        if File.directory?(user_dir)
+          expect(file(user_dir)).to_not be_writable.by('group')
+          expect(file(user_dir)).to_not be_readable.by('others')
+          expect(file(user_dir)).to_not be_writable.by('others')
+          expect(file(user_dir)).to_not be_executable.by('others')
+        end
+      end
+    end
+
+    it '9.2.8 Check User Dot File Permissions' do
+      user_dirs.each_value do |user_dir|
+        if File.directory?(user_dir)
+          Dir.glob(File.join(user_dir, '\.[A-Za-z0-9]*')).each do |dot_file|
+            expect(file(dot_file)).to_not be_writable.by('group')
+            expect(file(dot_file)).to_not be_writable.by('others')
+          end
+        end
+      end
+    end
+
+    it '9.2.9 Check Permissions on User .netrc Files' do
+      user_dirs.each_value do |user_dir|
+        if File.exists?("#{user_dir}/.netrc")
+          expect(file("#{user_dir}/.netrc")).to_not be_readable.by('group')
+          expect(file("#{user_dir}/.netrc")).to_not be_writable.by('group')
+          expect(file("#{user_dir}/.netrc")).to_not be_executable.by('group')
+          expect(file("#{user_dir}/.netrc")).to_not be_readable.by('others')
+          expect(file("#{user_dir}/.netrc")).to_not be_writable.by('others')
+          expect(file("#{user_dir}/.netrc")).to_not be_executable.by('others')
+        end
+      end
+    end
+
+    it '9.2.10 Check for Presence of User .rhosts Files' do
+      user_dirs.each_value do |user_dir|
+        expect(file("#{user_dir}/.rhosts")).to_not be_file
+      end
+    end
+
+    it '9.2.11 Check Groups in /etc/passwd' do
+      passwd_gids.each do |group|
+        expect{Etc.getgrgid(group)}.to_not raise_error
+      end
+    end
+
+    it '9.2.12 Check That Users Are Assigned Valid Home Directories' do
+      user_dirs.each_value { |user_dir| expect(file(user_dir)).to be_directory }
+    end
+
+    it '9.2.13 Check User Home Directory Ownership' do
+      user_dirs.each { |user, dir| expect(file(dir)).to be_owned_by(user) }
+    end
+
+    it '9.2.14 Check for Duplicate UIDs' do
+      expect(passwd_uids.find_all {|u| passwd_uids.count(u) > 1}).to be_empty
+    end
+
+    it '9.2.15 Check for Duplicate GIDs' do
+      expect(passwd_gids.find_all {|g| passwd_gids.count(g) > 1}).to be_empty
+    end
+
+    it '9.2.16 Check That Reserved UIDs Are Assigned to System Accounts' do
+      default_system_users = %w(root bin daemon adm lp sync shutdown halt mail news
+                                uucp operator games gopher ftp nobody nscd vcsa rpc
+                                mailnull smmsp pcap ntp dbus avahi sshd rpcuser
+                                nfsnobody haldaemon avahi-autoipd distcache apache
+                                oprofile webalizer dovecot squid named xfs gdm sabayon
+                                usbmuxd rtkit abrt saslauth pulse postfix tcpdump)
+      passwd_uids.each do |uid|
+        expect(default_system_users).to include(Etc.getpwuid(uid).name)
+      end
+    end
+
+    it '9.2.17 Check for Duplicate User Names' do
+      expect(passwd_names.find_all {|u| passwd_names.count(u) > 1}).to be_empty
+    end
+
+    it '9.2.18 Check for Duplicate Group Names' do
+      expect(group_names.find_all {|g| group_names.count(g) > 1}).to be_empty
+    end
+
+    it '9.2.19 Check for Presence of User .netrc Files' do
+      # why does the benchmark have this AND 9.2.9? anyway..
+      user_dirs.each_value do |user_dir|
+        expect(file("#{user_dir}/.netrc")).to_not be_file
+      end
+    end
+
+    it '9.2.20 Check for Presence of User .forward Files' do
+      user_dirs.each_value do |user_dir|
+        expect(file("#{user_dir}/.forward")).to_not be_file
+      end
+    end
   end
 end
