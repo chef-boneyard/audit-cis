@@ -727,9 +727,6 @@ control_group '5 Logging and Auditing' do
 end
 
 control_group '6 System Access, Authentication and Authorization' do
-  ::RSpec.configure do |c|
-    c.filter_run focus: true
-  end
   control '6.1 Configure cron and anacron' do
     it '6.1.1 Enable anacron Daemon' do
       expect(package('cronie-anacron')).to be_installed
@@ -799,7 +796,7 @@ control_group '6 System Access, Authentication and Authorization' do
     end
   end
 
-  control '6.2 Configure SSH' , focus: true do
+  control '6.2 Configure SSH' do
     let(:sshd_config) { file('/etc/ssh/sshd_config') }
 
     it '6.2.1 Set SSH Protocol to 2' do
