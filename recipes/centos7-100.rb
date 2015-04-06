@@ -509,10 +509,6 @@ control_group '3 Special Purpose Services' do
 end
 
 control_group '4 Network Configuration and Firewalls' do
-  ::RSpec.configure do |c|
-    c.filter_run focus: true
-  end
-
   control '4.1 Modify Network Parameters (Host Only)' do
     it '4.1.1 Disable IP Forwarding' do
       expect(command('/sbin/sysctl net.ipv4.ip_forward').stdout).to match(/^net.ipv4.ip_forward = 0/)
@@ -616,7 +612,7 @@ control_group '4 Network Configuration and Firewalls' do
     end
   end
 
-  control '4.6 Uncommon Network Protocols' , focus:true do
+  control '4.6 Uncommon Network Protocols' do
     let(:lsmod) { command('/sbin/lsmod') }
 
     it '4.6.1 Disable DCCP' do
@@ -655,39 +651,73 @@ control_group '5 Logging and Auditing' do
       expect(service('rsyslog')).to be_running
     end
 
-    it '5.1.3 Configure /etc/rsyslog.conf'
-    it '5.1.4 Create and Set Permissions on rsyslog Log Files'
-    it '5.1.5 Configure rsyslog to Send Logs to a Remote Log Host'
-    it '5.1.6 Accept Remote rsyslog Messages Only on Designated Log Hosts'
+    # Individual site policies and logging configuration may vary
+    # wildly. Capture the common, log files for syslog facilities.
+    it '5.1.3 Configure /etc/rsyslog.conf' do
+      expect(file('/etc/rsyslog.conf')).to contain('/var/log/messages')
+      expect(file('/etc/rsyslog.conf')).to contain('/var/log/kern.log')
+      expect(file('/etc/rsyslog.conf')).to contain('/var/log/daemon.log')
+      expect(file('/etc/rsyslog.conf')).to contain('/var/log/syslog')
+    end
+
+    it '5.1.4 Create and Set Permissions on rsyslog Log Files' do
+      pending <<-EOH.gsub(/^\s+/, '')
+        It's not feasible to implement a check for permissions on all possible
+        log files configured in /etc/rsyslog.conf or /etc/rsyslog.d/*.conf.
+        Implement a check for these in a custom audit mode cookbook.
+      EOH
+    end
+
+    # This is a basic check for remote syslog logging. It is probable
+    # that the /etc/rsyslog.conf file doesn\'t contain this
+    # configuration, especially if using the community `rsyslog`
+    # cookbook, as that writes to /etc/rsyslog.d/remote.conf.
+    it '5.1.5 Configure rsyslog to Send Logs to a Remote Log Host' do
+      expect(file('/etc/rsyslog.conf')).to match(/\*\.\* @/)
+    end
+
+    it '5.1.6 Accept Remote rsyslog Messages Only on Designated Log Hosts' do
+      expect(port(514)).to_not be_listening
+    end
   end
 
   # Level 2 applicability profile
   control '5.2 Configure System Accounting (auditd)' do
-    context '5.2.1 Configure Data Retention' do
-      context 'Level 2' do
-        it '5.2.1.1 Configure Audit Log Storage Size'
-        it '5.2.1.2 Disable System on Audit Log Full'
-        it '5.2.1.3 Keep All Auditing Information'
-      end if level_two_enabled
-    end
+    context 'Level 2' do
+      context '5.2.1 Configure Data Retention' do
+        it '5.2.1.1 Configure Audit Log Storage Size' do
+          expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file = \d+/)
+        end
 
-    it '5.2.2 Enable auditd Service'
-    it '5.2.3 Enable Auditing for Processes That Start Prior to auditd'
-    it '5.2.4 Record Events That Modify Date and Time Information'
-    it '5.2.5 Record Events That Modify User/Group Information'
-    it '5.2.6 Record Events That Modify the System\'s Network Environment'
-    it '5.2.7 Record Events That Modify the System\'s Mandatory Access Controls'
-    it '5.2.8 Collect Login and Logout Events'
-    it '5.2.9 Collect Session Initiation Information'
-    it '5.2.10 Collect Discretionary Access Control Permission Modification Events'
-    it '5.2.11 Collect Unsuccessful Unauthorized Access Attempts to Files'
-    it '5.2.12 Collect Use of Privileged Commands'
-    it '5.2.13 Collect Successful File System Mounts'
-    it '5.2.14 Collect File Deletion Events by User'
-    it '5.2.15 Collect Changes to System Administration Scope'
-    it '5.2.16 Collect System Administrator Actions (sudolog)'
-    it '5.2.17 Collect Kernel Module Loading and Unloading'
-    it '5.2.18 Make the Audit Configuration Immutable'
+        it '5.2.1.2 Disable System on Audit Log Full' do
+          expect(file('/etc/audit/auditd.conf')).to match(/^space_left_action = email/)
+          expect(file('/etc/audit/auditd.conf')).to match(/^action_mail_acct = root/)
+          expect(file('/etc/audit/auditd.conf')).to match(/^admin_space_left_action = halt/)
+        end
+
+        it '5.2.1.3 Keep All Auditing Information' do
+          expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file_action = keep_logs/)
+        end
+      end if level_two_enabled
+
+      it '5.2.2 Enable auditd Service'
+      it '5.2.3 Enable Auditing for Processes That Start Prior to auditd'
+      it '5.2.4 Record Events That Modify Date and Time Information'
+      it '5.2.5 Record Events That Modify User/Group Information'
+      it '5.2.6 Record Events That Modify the System\'s Network Environment'
+      it '5.2.7 Record Events That Modify the System\'s Mandatory Access Controls'
+      it '5.2.8 Collect Login and Logout Events'
+      it '5.2.9 Collect Session Initiation Information'
+      it '5.2.10 Collect Discretionary Access Control Permission Modification Events'
+      it '5.2.11 Collect Unsuccessful Unauthorized Access Attempts to Files'
+      it '5.2.12 Collect Use of Privileged Commands'
+      it '5.2.13 Collect Successful File System Mounts'
+      it '5.2.14 Collect File Deletion Events by User'
+      it '5.2.15 Collect Changes to System Administration Scope'
+      it '5.2.16 Collect System Administrator Actions (sudolog)'
+      it '5.2.17 Collect Kernel Module Loading and Unloading'
+      it '5.2.18 Make the Audit Configuration Immutable'
+    end if level_two_enabled
   end
 
   control '5.3 Configure logrotate' do
@@ -697,6 +727,9 @@ control_group '5 Logging and Auditing' do
 end
 
 control_group '6 System Access, Authentication and Authorization' do
+  ::RSpec.configure do |c|
+    c.filter_run focus: true
+  end
   control '6.1 Configure cron and anacron' do
     it '6.1.1 Enable anacron Daemon' do
       expect(package('cronie-anacron')).to be_installed
@@ -722,109 +755,160 @@ control_group '6 System Access, Authentication and Authorization' do
     it '6.1.5 Set User/Group Owner and Permission on /etc/cron.hourly' do
       expect(file('/etc/cron.hourly')).to be_owned_by('root')
       expect(file('/etc/cron.hourly')).to be_grouped_into('root')
-      expect(file('/etc/cron.hourly')).to be_mode(600)
+      expect(file('/etc/cron.hourly')).to be_mode(700)
     end
 
     it '6.1.6 Set User/Group Owner and Permission on /etc/cron.daily' do
       expect(file('/etc/cron.daily')).to be_owned_by('root')
       expect(file('/etc/cron.daily')).to be_grouped_into('root')
-      expect(file('/etc/cron.daily')).to be_mode(600)
+      expect(file('/etc/cron.daily')).to be_mode(700)
     end
 
     it '6.1.7 Set User/Group Owner and Permission on /etc/cron.weekly' do
       expect(file('/etc/cron.weekly')).to be_owned_by('root')
       expect(file('/etc/cron.weekly')).to be_grouped_into('root')
-      expect(file('/etc/cron.weekly')).to be_mode(600)
+      expect(file('/etc/cron.weekly')).to be_mode(700)
     end
 
     it '6.1.8 Set User/Group Owner and Permission on /etc/cron.monthly' do
       expect(file('/etc/cron.monthly')).to be_owned_by('root')
       expect(file('/etc/cron.monthly')).to be_grouped_into('root')
-      expect(file('/etc/cron.monthly')).to be_mode(600)
+      expect(file('/etc/cron.monthly')).to be_mode(700)
     end
 
     it '6.1.9 Set User/Group Owner and Permission on /etc/cron.d' do
       expect(file('/etc/cron.d')).to be_owned_by('root')
       expect(file('/etc/cron.d')).to be_grouped_into('root')
-      expect(file('/etc/cron.d')).to be_mode(600)
+      expect(file('/etc/cron.d')).to be_mode(700)
     end
 
-    it '6.1.10 Restrict at Daemon'
-    it '6.1.11 Restrict at/cron to Authorized Users'
+    it '6.1.10 Restrict at Daemon' do
+      expect(file('/etc/at.deny')).to_not be_file
+      expect(file('/etc/at.allow')).to be_file
+      expect(file('/etc/at.allow')).to be_owned_by('root')
+      expect(file('/etc/at.allow')).to be_grouped_into('root')
+      expect(file('/etc/at.allow')).to be_mode(600)
+    end
+
+    it '6.1.11 Restrict at/cron to Authorized Users' do
+      expect(file('/etc/cron.deny')).to_not be_file
+      expect(file('/etc/cron.allow')).to be_file
+      expect(file('/etc/cron.allow')).to be_owned_by('root')
+      expect(file('/etc/cron.allow')).to be_grouped_into('root')
+      expect(file('/etc/cron.allow')).to be_mode(600)
+    end
   end
 
-  control '6.2 Configure SSH' do
+  control '6.2 Configure SSH' , focus: true do
     let(:sshd_config) { file('/etc/ssh/sshd_config') }
 
     it '6.2.1 Set SSH Protocol to 2' do
-      expect(sshd_config).to match(/^Protocol\s+2/)
+      expect(sshd_config.content).to_not match(/^Protocol 1/)
     end
 
     it '6.2.2 Set LogLevel to INFO' do
-      expect(sshd_config).to match(/^LogLevel\s+INFO/)
+      expect(sshd_config.content).to_not match(/^LogLevel (QUIET|FATAL|ERROR|VERBOSE|DEBUG.+)/)
     end
 
     it '6.2.3 Set Permissions on /etc/ssh/sshd_config' do
-      expect(file(sshd_config)).to be_owned_by('root')
-      expect(file(sshd_config)).to be_grouped_into('root')
-      expect(file(sshd_config)).to be_mode(600)
+      expect(sshd_config).to be_owned_by('root')
+      expect(sshd_config).to be_grouped_into('root')
+      expect(sshd_config).to be_mode(600)
     end
 
     it '6.2.4 Disable SSH X11 Forwarding' do
-      expect(file(sshd_config)).to match(/^X11Forwarding\s+no/)
+      expect(sshd_config.content).to_not match(/^X11Forwarding\s+yes/)
     end
 
     it '6.2.5 Set SSH MaxAuthTries to 4 or Less' do
-      expect(file(sshd_config)).to match(/^MaxAuthTries\s+[01234]/)
+      expect(sshd_config.content).to match(/^MaxAuthTries\s+[0-4]/)
     end
 
     it '6.2.6 Set SSH IgnoreRhosts to Yes' do
-      expect(file(sshd_config)).to match(/^IgnoreRhosts\s+yes/)
+      expect(sshd_config.content).to_not match(/^IgnoreRhosts\s+no/)
     end
 
     it '6.2.7 Set SSH HostbasedAuthentication to No' do
-      expect(file(sshd_config)).to match(/^HostbasedAuthentication\s+no/)
+      expect(sshd_config.content).to_not match(/^HostbasedAuthentication\s+yes/)
     end
 
     it '6.2.8 Disable SSH Root Login' do
-      expect(file(sshd_config)).to match(/^PermitRootLogin\s+no/)
+      expect(sshd_config.content).to match(/^PermitRootLogin\s+no/)
     end
 
     it '6.2.9 Set SSH PermitEmptyPasswords to No' do
-      expect(file(sshd_config)).to match(/^PermitEmptyPasswords\s+no/)
+      expect(sshd_config.content).to_not match(/^PermitEmptyPasswords\s+yes/)
     end
 
     it '6.2.10 Do Not Allow Users to Set Environment Options' do
-      expect(file(sshd_config)).to match(/^PermitUserEnvironment\s+no/)
+      expect(sshd_config.content).to_not match(/^PermitUserEnvironment\s+yes/)
     end
 
     it '6.2.11 Use Only Approved Cipher in Counter Mode' do
-      expect(file(sshd_config)).to match(/^Ciphers\s+aes128-ctr,aes192-ctr,aes256-ctr/)
+      expect(sshd_config.content).to match(/^Ciphers\s+aes128-ctr,aes192-ctr,aes256-ctr/)
     end
 
     # The actual intervals are allowed to be set per site policy,
-    # which may differ from the recommended (300 and 0 respectively)
+    # which may differ from the recommended (300 and 0 respectively).
+    # We check the default recommendation here, but individuals may wish
+    # to write their own rule for this validation.
     it '6.2.12 Set Idle Timeout Interval for User Login' do
-      expect(file(sshd_config)).to match(/^ClientAliveInterval\s+\d/)
-      expect(file(sshd_config)).to match(/^ClientAliveCountMax\s+\d/)
+      expect(sshd_config.content).to match(/^ClientAliveInterval\s+[1-9]+/)
+      expect(sshd_config.content).to match(/^ClientAliveCountMax\s+0/)
     end
 
     it '6.2.13 Limit Access via SSH' do
-      expect(file(sshd_config)).to match(/^(AllowUsers|AllowGroups|DenyUsers|DenyGroups).+/)
+      expect(sshd_config.content).to match(/^(AllowUsers|AllowGroups|DenyUsers|DenyGroups).+/)
     end
 
     it '6.2.14 Set SSH Banner' do
-      expect(file(sshd_config)).to match(/^Banner\s+\/etc\/issue.*/)
+      expect(sshd_config.content).to match(/^Banner.*\/etc\/issue.*/)
     end
   end
 
   control '6.3 Configure PAM' do
-    it '6.3.1 Upgrade Password Hashing Algorithm to SHA-512'
-    it '6.3.2 Set Password Creation Requirement Parameters Using pam_cracklib'
-    it '6.3.3 Set Lockout for Failed Password Attempts'
-    it '6.3.4 Limit Password Reuse'
-    it '6.4 Restrict root Login to System Console'
-    it '6.5 Restrict Access to the su Command'
+    let(:system_auth) { file('/etc/pam.d/system-auth') }
+    let(:password_auth) { file('/etc/pam.d/password-auth') }
+
+    it '6.3.1 Upgrade Password Hashing Algorithm to SHA-512' do
+      expect(command('/sbin/authconfig --test').stdout).to match(/hashing.*sha512/)
+    end
+
+    it '6.3.2 Set Password Creation Requirement Parameters Using pam_cracklib' do
+      expect(system_auth.content).to match(/pam_pwquality.so/)
+      expect(file('/etc/security/pwquality.conf')).to match(/minlen=14/)
+      expect(file('/etc/security/pwquality.conf')).to match(/dcredit=-1/)
+      expect(file('/etc/security/pwquality.conf')).to match(/ucredit=-1/)
+      expect(file('/etc/security/pwquality.conf')).to match(/ocredit=-1/)
+      expect(file('/etc/security/pwquality.conf')).to match(/lcredit=-1/)
+    end
+
+    it '6.3.3 Set Lockout for Failed Password Attempts' do
+      expect(password_auth.content).to match(/auth required pam_faillock.so preauth audit silent deny=5 unlock_time=900/)
+      expect(password_auth.content).to match(/auth \[default=die\] pam_faillock.so authfail audit deny=5 unlock_time=900/)
+      expect(password_auth.content).to match(/auth sufficient pam_faillock.so authsucc audit deny=5 unlock_time=900/)
+      expect(password_auth.content).to match(/auth \[success=1 default=bad\] pam_unix.so/)
+      expect(system_auth.content).to match(/auth required pam_faillock.so preauth audit silent deny=5 unlock_time=900/)
+      expect(system_auth.content).to match(/auth \[default=die\] pam_faillock.so authfail audit deny=5 unlock_time=900/)
+      expect(system_auth.content).to match(/auth sufficient pam_faillock.so authsucc audit deny=5 unlock_time=900/)
+      expect(system_auth.content).to math(/auth \[success=1 default=bad\] pam_unix.so/)
+    end
+
+    it '6.3.4 Limit Password Reuse' do
+      expect(system_auth.content).to match(/password sufficient pam_unix.so remember=5/)
+    end
+
+    it '6.4 Restrict root Login to System Console' do
+      pending <<-EOH
+        The consoles that are secure may vary by site. Implement a custom
+        audit control group to cover this.
+      EOH
+    end
+
+    it '6.5 Restrict Access to the su Command' do
+      expect(file('/etc/pam.d/su').content).to match(/auth required pam_wheel.so use_uid/)
+      expect(file('/etc/group').content).to match(/^wheel:x:10:root/)
+    end
   end
 end
 
