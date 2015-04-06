@@ -3,7 +3,7 @@ maintainer       'Chef Software, Inc.'
 maintainer_email 'cookbooks@chef.io'
 license          'Apache 2.0'
 description      'Chef audit-mode controls for CIS Benchmarks'
-version          '0.1.1'
+version          '0.2.0'
 
 unless defined?(Ridley::Chef::Cookbook::Metadata) || defined?(Stove::Cookbook::Metadata)
   source_url       'https://github.com/chef-cookbooks/audit-cis'
