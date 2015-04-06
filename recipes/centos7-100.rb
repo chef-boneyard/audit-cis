@@ -911,15 +911,50 @@ end
 
 control_group '7 User Accounts and Environment' do
   control '7.1 Set Shadow Password Suite Parameters (/etc/login.defs)' do
-    it '7.1.1 Set Password Expiration Days'
-    it '7.1.2 Set Password Change Minimum Number of Days'
-    it '7.1.3 Set Password Expiring Warning Days'
+    let(:login_defs) { file('/etc/login.defs') }
+    it '7.1.1 Set Password Expiration Days' do
+      expect(login_defs.content).to match(/^PASS_MAX_DAYS\s+[1-9]{2}/)
+    end
+
+    it '7.1.2 Set Password Change Minimum Number of Days' do
+      expect(login_defs.content).to match(/^PASS_MIN_DAYS\s+[1-7]/)
+    end
+
+    it '7.1.3 Set Password Expiring Warning Days' do
+      expect(login_defs.content).to match(/^PASS_WARN_AGE\s+([7-9]|[1-9]\d+)/)
+    end
   end
 
-  control '7.2 Disable System Accounts'
-  control '7.3 Set Default Group for root Account'
-  control '7.4 Set Default umask for Users'
-  control '7.5 Lock Inactive User Accounts'
+  control '7.2 Disable System Accounts' do
+    let(:cmd) { command('egrep -v "^\+" /etc/passwd | awk -F: \'($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $3<500 && $7!="/sbin/nologin") {print}\'')}
+
+    it 'does not have system accounts without nologin as shell' do
+      expect(cmd.stdout).to be_empty
+    end
+  end
+
+  control '7.3 Set Default Group for root Account' do
+    it 'group root is gid 0' do
+      expect(group('root')).to have_gid(0)
+    end
+
+    it 'user root is in root group' do
+      expect(user('root')).to belong_to_group('root')
+    end
+  end
+
+  control '7.4 Set Default umask for Users' do
+    it 'check umask in /etc/bashrc' do
+      expect(file('/etc/bashrc').content).to match(/umask 077/)
+    end
+  end
+
+  control '7.5 Lock Inactive User Accounts' do
+    it 'sets inactivity to 35 days by default' do
+      expect(file('/etc/default/useradd').content).to match(/^INACTIVE=35/)
+    end
+
+  end
 end
 
 control_group '8 Warning Banners' do
