@@ -1,7 +1,3 @@
-# WORK IN PROGRESS
-
-As of this initial release, this cookbook is still a work in progress. Not all recommendations from the CIS benchmarks are implemented.
-
 # audit-cis
 
 This cookbook implements recipes that perform a Chef Audit Mode check for the CIS Benchmarks. Each recipe represents an entire benchmark's implementation. They are intended to be run wholesale against the target platform. The check may fail depending on the base OS installation.
@@ -13,13 +9,15 @@ This cookbook is not supported or endorsed by the Center for Internet Security o
 - [CIS Benchmarks](https://benchmarks.cisecurity.org/)
 - [Chef Audit Mode](http://docs.chef.io/analytics/chef_client.html)
 
+See [FAQ](FAQ) for more information.
+
 # Requirements
 
 Chef 12.1.0 or higher.
 
 ## Platform
 
-- CentOS 7
+- CentOS 7, 64 bit
 
 # Recipe Naming
 
@@ -31,7 +29,13 @@ Recipes will be updated to the latest benchmark as is deemed reasonable and for 
 
 # Usage
 
-Add the recipe for the desired benchmark to the appropriate nodes. Failures mean that the node does not comply with the benchmark's validation rules. Depending on site-specific security policies and business requirements, failures can be safe to ignore. In this case it may be desirable to implement Chef Analytics rules to filter and notify only on failures that are in scope.
+Add the recipe for the desired benchmark to the appropriate nodes and enable audit mode in `/etc/chef/client.rb`.
+
+```ruby
+audit_mode :enabled
+```
+
+Failures mean that the node does not comply with the benchmark's validation rules. Depending on site-specific security policies and business requirements, failures can be safe to ignore. In this case it may be desirable to implement Chef Analytics rules to filter and notify only on failures that are in scope.
 
 # Roadmap
 
