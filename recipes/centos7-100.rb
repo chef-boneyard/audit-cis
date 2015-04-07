@@ -20,7 +20,7 @@
 # `node` is not available in the audit DSL, so let's set a local
 # variable to check these attributes as flags
 level_two_enabled = AuditCIS.profile_level_two?(node)
-ipv6_disabled     = false #AuditCIS.ipv6_disabled?(node)
+ipv6_disabled     = AuditCIS.ipv6_disabled?(node)
 
 control_group '1 Install Updates, Patches and Additional Security Software' do
   control '1.1 Filesystem Configuration' do
