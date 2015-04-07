@@ -1103,7 +1103,9 @@ control_group '9 System Maintenance' do
 
   control '9.1 Verify System File Permissions' do
     context 'Level 2' do
-      it '9.1.1 Verify System File Permissions'
+      it '9.1.1 Verify System File Permissions' do
+        expect(command('rpm -Va --nomtime --nosize --nomd5 --nolinkto').stdout).to be_empty
+      end
     end if level_two_enabled
 
     context 'Level 1' do
