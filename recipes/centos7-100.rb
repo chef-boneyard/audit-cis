@@ -683,6 +683,8 @@ control_group '5 Logging and Auditing' do
 
   # Level 2 applicability profile
   control '5.2 Configure System Accounting (auditd)' do
+    let(:privileged_commands) { command('df --local -P | awk {\'if (NR!=1) print $6\'} | xargs -I \'{}\' find \'{}\' -xdev \( -perm -4000 -o -perm -2000 \) -type f') }
+
     context 'Level 2' do
       context '5.2.1 Configure Data Retention' do
         it '5.2.1.1 Configure Audit Log Storage Size' do
@@ -700,29 +702,115 @@ control_group '5 Logging and Auditing' do
         end
       end if level_two_enabled
 
-      it '5.2.2 Enable auditd Service'
-      it '5.2.3 Enable Auditing for Processes That Start Prior to auditd'
-      it '5.2.4 Record Events That Modify Date and Time Information'
-      it '5.2.5 Record Events That Modify User/Group Information'
-      it '5.2.6 Record Events That Modify the System\'s Network Environment'
-      it '5.2.7 Record Events That Modify the System\'s Mandatory Access Controls'
-      it '5.2.8 Collect Login and Logout Events'
-      it '5.2.9 Collect Session Initiation Information'
-      it '5.2.10 Collect Discretionary Access Control Permission Modification Events'
-      it '5.2.11 Collect Unsuccessful Unauthorized Access Attempts to Files'
-      it '5.2.12 Collect Use of Privileged Commands'
-      it '5.2.13 Collect Successful File System Mounts'
-      it '5.2.14 Collect File Deletion Events by User'
-      it '5.2.15 Collect Changes to System Administration Scope'
-      it '5.2.16 Collect System Administrator Actions (sudolog)'
-      it '5.2.17 Collect Kernel Module Loading and Unloading'
-      it '5.2.18 Make the Audit Configuration Immutable'
+      it '5.2.2 Enable auditd Service' do
+        expect(service('auditd')).to be_enabled
+        expect(service('auditd')).to be_running
+      end
+
+      it '5.2.3 Enable Auditing for Processes That Start Prior to auditd' do
+        expect(file('/boot/grub2/grub.cfg').content).to match(/(^|^\s+)linux.*audit=1/)
+      end
+
+      it '5.2.4 Record Events That Modify Date and Time Information' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* key=time-change syscall=adjtimex,settimeofday/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* key=time-change syscall=stime,settimeofday,adjtimex/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* key=time-change syscall=clock_settime/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/localtime perm=wa key=time-change/)
+      end
+
+      it '5.2.5 Record Events That Modify User/Group Information' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/group perm=wa key=identity/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/passwd perm=wa key=identity/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/gshadow perm=wa key=identity/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/shadow perm=wa key=identity/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/security\/opasswd perm=wa key=identity/)
+      end
+
+      it '5.2.6 Record Events That Modify the System\'s Network Environment' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* key=system-locale syscall=sethostname,setdomainname/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue perm=wa key=system-locale/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue.net perm=wa key=system-locale/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/hosts perm=wa key=system-locale/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/sysconfig\/network perm=wa key=system-locale/)
+      end
+
+      it '5.2.7 Record Events That Modify the System\'s Mandatory Access Controls' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always dir=\/etc\/selinux perm=wa key=MAC-policy/)
+      end
+
+      it '5.2.8 Collect Login and Logout Events' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/faillog perm=wa key=logins/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/lastlog perm=wa key=logins/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/tallylog perm=wa key=logins/)
+      end
+
+      it '5.2.9 Collect Session Initiation Information' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/run\/utmp perm=wa key=session/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/wtmp perm=wa key=session/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/btmp perm=wa key=session/)
+      end
+
+      it '5.2.10 Collect Discretionary Access Control Permission Modification Events' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chmod,fchmod,fchmodat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chmod,fchmod,fchmodat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chown,fchown,lchown,fchownat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=lchown,fchown,chown,fchownat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
+      end
+
+      it '5.2.11 Collect Unsuccessful Unauthorized Access Attempts to Files' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,truncate,ftruncate,creat,openat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,creat,truncate,ftruncate,openat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,truncate,ftruncate,creat,openat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,creat,truncate,ftruncate,openat/)
+      end
+
+      it '5.2.12 Collect Use of Privileged Commands' do
+        privileged_commands.stdout.split(/\n/).each do |cmd|
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=#{cmd} perm=x auid>=500 \(0x1f4\) f24!=0 key=privileged/)
+        end
+      end
+
+      it '5.2.13 Collect Successful File System Mounts' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=mounts syscall=mount/)
+      end
+
+      it '5.2.14 Collect File Deletion Events by User' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=delete syscall=rename,unlink,unlinkat,renameat/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=delete syscall=unlink,rename,unlinkat,renameat/)
+      end
+
+      it '5.2.15 Collect Changes to System Administration Scope' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/sudoers perm=wa key=scope/)
+      end
+
+      it '5.2.16 Collect System Administrator Actions (sudolog)' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/var\/log\/sudo.log perm=wa key=actions/)
+      end
+
+      it '5.2.17 Collect Kernel Module Loading and Unloading' do
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/sbin\/insmod perm=x key=modules/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/sbin\/rmmod perm=x key=modules/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/sbin\/modprobe perm=x key=modules/)
+        expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* key=modules syscall=init_module,delete_module/)
+      end
+
+      it '5.2.18 Make the Audit Configuration Immutable' do
+        expect(command('/sbin/auditctl -s').stdout).to match(/^AUDIT_STATUS:.* enabled=2/)
+      end
     end if level_two_enabled
   end
 
   control '5.3 Configure logrotate' do
-    # /var/log/messages /var/log/secure /var/log/maillog /var/log/spooler /var/log/boot.log /var/log/cron
-    it 'system logs have entries in /etc/logrotate.d/syslog'
+    it 'system logs have entries in /etc/logrotate.d/syslog' do
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/cron/)
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/boot.log/)
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/spooler/)
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/maillog/)
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/secure/)
+      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/messages/)
+    end
   end
 end
 
