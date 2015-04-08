@@ -4,9 +4,6 @@ driver:
   customize:
     memory: 1024
     cpus: 2
-    scsi0:1.filename: "/tmp/vd3.vmdk"
-    scsi0:1.present: "TRUE"
-    scsi0:1.redo: ""
 
 provisioner:
   name: chef_zero
