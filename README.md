@@ -4,7 +4,7 @@ This cookbook implements recipes that perform a Chef Audit Mode check for the CI
 
 This cookbook is intended to be used only with Chef's audit mode and should not make any changes to the system. Implementation of the benchmarks is up to individuals and organizations security policy. This cookbook does not perform any sort of "scoring" according to the CIS Benchmarks.
 
-This cookbook is not supported or endorsed by the Center for Internet Security or its affiliates. We may opt
+This cookbook is not supported or endorsed by the Center for Internet Security or its affiliates.
 
 - [CIS Benchmarks](https://benchmarks.cisecurity.org/)
 - [Chef Audit Mode](http://docs.chef.io/analytics/chef_client.html)
