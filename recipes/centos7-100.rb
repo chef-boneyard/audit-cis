@@ -161,7 +161,7 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
         end
 
         it '1.2.2 Verify that gpgcheck is Globally Activated' do
-          expect(file('/etc/yum.conf')).to contain('gpgcheck=1')
+          expect(file('/etc/yum.conf').content).to match(/^gpgcheck=1/)
         end
 
         it '1.2.3 Obtain Software Package Updates with yum' do
