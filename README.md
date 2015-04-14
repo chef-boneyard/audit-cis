@@ -20,6 +20,7 @@ Chef 12.1.0 or higher.
 ## Platform
 
 - CentOS 7
+- CentOS 6
 
 # Recipe Naming
 
@@ -37,9 +38,9 @@ Add the recipe for the desired benchmark to the appropriate nodes. Failures mean
 
 Other platform benchmarks will be added in the future. We will target the following next:
 
-- CentOS 6
 - Ubuntu 14.04
 - Ubuntu 12.04
+- Windows Server 2012
 
 It is not yet determined whether other non-platform benchmarks will be implemented (e.g., Apache HTTPD) in this cookbook, or in another one.
 
@@ -59,4 +60,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-

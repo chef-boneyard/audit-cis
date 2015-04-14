@@ -4,9 +4,6 @@ driver:
   customize:
     memory: 1024
     cpus: 2
-    scsi0:1.filename: "/tmp/vd3.vmdk"
-    scsi0:1.present: "TRUE"
-    scsi0:1.redo: ""
 
 provisioner:
   name: chef_zero
@@ -15,9 +12,17 @@ provisioner:
 
 platforms:
   - name: centos-7.0
+  - name: centos-6.6
 
 suites:
-  - name: default
+  - name: centos-7
+    excludes: [ "centos-6.6" ]
     run_list:
       - recipe[audit-cis::centos7-100]
+    attributes:
+
+  - name: centos6
+    excludes: [ "centos-7.0" ]
+    run_list:
+    - recipe[audit-cis::centos6-110]
     attributes:
