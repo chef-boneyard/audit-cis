@@ -16,13 +16,13 @@ platforms:
 
 suites:
   - name: centos-7
-    excludes: [ "centos-6.6" ]
+    includes: [ "centos-7.0" ]
     run_list:
       - recipe[audit-cis::centos7-100]
     attributes:
 
-  - name: centos6
-    excludes: [ "centos-7.0" ]
+  - name: centos-6
+    includes: [ "centos-6.6" ]
     run_list:
     - recipe[audit-cis::centos6-110]
     attributes:
