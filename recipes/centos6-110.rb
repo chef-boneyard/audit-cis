@@ -521,9 +521,15 @@ control_group '3 Special Purpose Services' do
     end
   end
 
+  let(:postfix_state) { Mixlib::ShellOut.new('rpm -q postfix').run_command.stdout }
+
   control '3.16 Configure Mail Transfer Agent for Local-Only Mode' do
-    it 'listens on port 25 only on the loopback address' do
-      expect(port(25)).to be_listening.on('127.0.0.1')
+    it 'listens on port 25 only on the loopback address, or not at all if postfix is uninstalled' do
+      if postfix_state =~ /^postfix/
+        expect(port(25)).to be_listening.on('127.0.0.1')
+      else
+        expect(port(25)).to_not be_listening
+      end
     end
   end
 end
