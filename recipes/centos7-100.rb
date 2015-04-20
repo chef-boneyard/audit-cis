@@ -461,7 +461,7 @@ control_group '3 Special Purpose Services' do
 
   control '3.9 Remove DNS Server' do
     it 'does not have the bind package installed' do
-      expect(package('bind')).to_not be_intalled
+      expect(package('bind')).to_not be_installed
     end
   end
 
