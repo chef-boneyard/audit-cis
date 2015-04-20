@@ -1,3 +1,12 @@
+## v0.3.3
+
+* Fix a typo in 3.9
+* Check if postfix is installed, and adjust how to check whether the node listens on localhost:25 or not all all
+
+## v0.3.2
+
+* Remove the guards around the metadata URLs
+
 ## v0.3.1
 
 * Use anchored regexp for gpgcheck
