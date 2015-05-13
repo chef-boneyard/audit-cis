@@ -221,7 +221,7 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
 
         it '1.4.4 Remove SETroubleshoot' do
           expect(package('setroubleshoot')).to_not be_installed
-        end if level_two_enabled
+        end
 
         it '1.4.5 Remove MCS Translation Service (mcstrans)' do
           expect(package('mcstrans')).to_not be_installed
@@ -230,7 +230,7 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
         it '1.4.6 Check for Unconfined Daemons' do
           expect(command('ps -eZ | egrep "initrc" | egrep -vw "tr|ps|egrep|bash|awk" | tr ":" " " | awk \'{print $NF }\'').stdout).to be_empty
         end
-      end
+      end if level_two_enabled
     end
 
     control '1.5 Secure Boot Settings' do
