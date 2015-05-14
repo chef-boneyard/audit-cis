@@ -1,3 +1,8 @@
+## v0.4.0
+
+* Add a recipe for Ubuntu 14.04
+* Fix level two check to correct block in CentOS 7 recipe
+
 ## v0.3.3
 
 * Fix a typo in 3.9
