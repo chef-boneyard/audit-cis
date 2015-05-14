@@ -11,18 +11,15 @@ provisioner:
     audit_mode: :enabled
 
 platforms:
+  - name: ubuntu-14.04
+    run_list:
+      - recipe[audit-cis::ubuntu1404-100]
   - name: centos-7.0
-  - name: centos-6.6
-
-suites:
-  - name: centos-7
-    includes: [ "centos-7.0" ]
     run_list:
       - recipe[audit-cis::centos7-100]
-    attributes:
-
-  - name: centos-6
-    includes: [ "centos-6.6" ]
+  - name: centos-6.6
     run_list:
     - recipe[audit-cis::centos6-110]
-    attributes:
+
+suites:
+  - name: default
