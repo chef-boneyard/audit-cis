@@ -26,7 +26,7 @@ control_group '1 Patching and Software Updates' do
   control '1.1 Install Updates, Patches, and Additional Security Software' do
     let(:apt_get_upgrade) { command('apt-get -u upgrade --assume-no') }
 
-    it 'returns 1 when there are packages to upgrade' do
+    it 'returns 0 when there are no packages to upgrade' do
       expect(apt_get_upgrade.exit_status).to eql(0)
     end
 
