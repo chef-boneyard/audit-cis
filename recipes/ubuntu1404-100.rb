@@ -966,7 +966,7 @@ control_group '8 Logging and Auditing' do
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue perm=wa key=system-locale/)
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue.net perm=wa key=system-locale/)
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/hosts perm=wa key=system-locale/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/network perm=wa key=system-locale/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always dir=\/etc\/network perm=wa key=system-locale/)
         end
       end
 
