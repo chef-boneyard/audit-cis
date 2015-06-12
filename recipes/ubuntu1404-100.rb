@@ -907,21 +907,21 @@ control_group '8 Logging and Auditing' do
       context '8.1.1 Configure Data Retention' do
         control '8.1.1.1 Configure Audit Log Storage Size' do
           it 'configures max_log_file in /etc/audit/auditd.conf' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file = \d+/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file = \d+/)
           end
         end
 
         control '8.1.1.2 Disable System on Audit Log Full' do
           it 'is configured to halt the system if the audit log is full' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^space_left_action = email/)
-            expect(file('/etc/audit/auditd.conf')).to match(/^action_mail_acct = root/)
-            expect(file('/etc/audit/auditd.conf')).to match(/^admin_space_left_action = halt/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^space_left_action = email/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^action_mail_acct = root/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^admin_space_left_action = halt/)
           end
         end
 
         control '8.1.1.3 Keep All Auditing Information' do
           it 'is configured to keep all audit logs' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file_action = keep_logs/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file_action = keep_logs/)
           end
         end
       end
