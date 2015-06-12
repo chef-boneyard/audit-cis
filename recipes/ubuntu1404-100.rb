@@ -234,8 +234,10 @@ control_group '3 Secure Boot Settings' do
   end
 
   control '3.2 Set Permissions on bootloader config' do
-    it 'sets /boot/grub/grub.cfg permissions to read only' do
-      expect(grub_cfg).to be_mode(400)
+    it 'sets /boot/grub/grub.cfg permissions to read and write for root only' do
+      expect(grub_cfg).to be_mode(600)
+      expect(grub_cfg).to be_owned_by('root')
+      expect(grub_cfg).to be_grouped_into('root')
     end
   end
 
