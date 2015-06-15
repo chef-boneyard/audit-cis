@@ -939,7 +939,7 @@ control_group '8 Logging and Auditing' do
 
       control '8.1.3 Enable Auditing for Processes That Start Prior to auditd' do
         it 'enables auditing in grub config' do
-          expect(file('/boot/grub2/grub.cfg').content).to match(/(^|^\s+)linux.*audit=1/)
+          expect(file('/boot/grub/grub.cfg').content).to match(/(^|^\s+)linux.*audit=1/)
         end
       end
 
