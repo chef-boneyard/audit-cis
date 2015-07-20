@@ -18,6 +18,17 @@
 # limitations under the License.
 #
 
-Chef::Log.warn("#{node.name} includes #{cookbook_name}::#{recipe_name} in its run list")
-Chef::Log.warn('This recipe does nothing on its own, instead include one of the recipes')
-Chef::Log.warn("that checks the appropriate CIS Benchmark. See #{cookbook_name}'s README.md.")
+case node['platform_family']
+when 'debian'
+  case node['platform_version']
+  when '14.04'
+    include_recipe "#{cookbook_name}::ubuntu1404-100"
+  end
+when 'redhat'
+  case node['platform_version']
+  when /^6/
+    include_recipe "#{cookbook_name}::centos6-110"
+  when /^7/
+    include_recipe "#{cookbook_name}::centos7-100"
+  end
+end
