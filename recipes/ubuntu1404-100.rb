@@ -234,8 +234,10 @@ control_group '3 Secure Boot Settings' do
   end
 
   control '3.2 Set Permissions on bootloader config' do
-    it 'sets /boot/grub/grub.cfg permissions to read only' do
-      expect(grub_cfg).to be_mode(400)
+    it 'sets /boot/grub/grub.cfg permissions to read and write for root only' do
+      expect(grub_cfg).to be_mode(600)
+      expect(grub_cfg).to be_owned_by('root')
+      expect(grub_cfg).to be_grouped_into('root')
     end
   end
 
@@ -905,21 +907,21 @@ control_group '8 Logging and Auditing' do
       context '8.1.1 Configure Data Retention' do
         control '8.1.1.1 Configure Audit Log Storage Size' do
           it 'configures max_log_file in /etc/audit/auditd.conf' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file = \d+/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file = \d+/)
           end
         end
 
         control '8.1.1.2 Disable System on Audit Log Full' do
           it 'is configured to halt the system if the audit log is full' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^space_left_action = email/)
-            expect(file('/etc/audit/auditd.conf')).to match(/^action_mail_acct = root/)
-            expect(file('/etc/audit/auditd.conf')).to match(/^admin_space_left_action = halt/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^space_left_action = email/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^action_mail_acct = root/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^admin_space_left_action = halt/)
           end
         end
 
         control '8.1.1.3 Keep All Auditing Information' do
           it 'is configured to keep all audit logs' do
-            expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file_action = keep_logs/)
+            expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file_action = keep_logs/)
           end
         end
       end
@@ -937,7 +939,7 @@ control_group '8 Logging and Auditing' do
 
       control '8.1.3 Enable Auditing for Processes That Start Prior to auditd' do
         it 'enables auditing in grub config' do
-          expect(file('/boot/grub2/grub.cfg').content).to match(/(^|^\s+)linux.*audit=1/)
+          expect(file('/boot/grub/grub.cfg').content).to match(/(^|^\s+)linux.*audit=1/)
         end
       end
 
@@ -966,7 +968,7 @@ control_group '8 Logging and Auditing' do
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue perm=wa key=system-locale/)
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/issue.net perm=wa key=system-locale/)
           expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/hosts perm=wa key=system-locale/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=\/etc\/network perm=wa key=system-locale/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always dir=\/etc\/network perm=wa key=system-locale/)
         end
       end
 
