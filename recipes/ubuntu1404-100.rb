@@ -994,21 +994,21 @@ control_group '8 Logging and Auditing' do
 
       control '8.1.10 Collect Discretionary Access Control Permission Modification Events' do
         it 'configures audit rules to collect DAC permission modifications' do
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chmod,fchmod,fchmodat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chmod,fchmod,fchmodat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=chown,fchown,lchown,fchownat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=lchown,fchown,chown,fchownat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=chmod,fchmod,fchmodat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=chmod,fchmod,fchmodat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=chown,fchown,lchown,fchownat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=lchown,fchown,chown,fchownat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=perm_mod syscall=setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr/)
         end
       end
 
       control '8.1.11 Collect Unsuccessful Unauthorized Access Attempts to Files' do
         it 'configures audit rules to collect unsuccessful unauthorized file access' do
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,truncate,ftruncate,creat,openat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,creat,truncate,ftruncate,openat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,truncate,ftruncate,creat,openat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) f24!=0 key=access syscall=open,creat,truncate,ftruncate,openat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=access syscall=open,truncate,ftruncate,creat,openat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-13 \(0xfffffff3\) auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=access syscall=open,creat,truncate,ftruncate,openat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=access syscall=open,truncate,ftruncate,creat,openat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* exit=-1 \(0xffffffff\) auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=access syscall=open,creat,truncate,ftruncate,openat/)
         end
       end
 
@@ -1017,21 +1017,21 @@ control_group '8 Logging and Auditing' do
 
         it 'configures audit rules to collect privileged command use' do
           privileged_commands.stdout.split(/\n/).each do |cmd|
-            expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=#{cmd} perm=x auid>=500 \(0x1f4\) f24!=0 key=privileged/)
+            expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always watch=#{cmd} perm=x auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=privileged/)
           end
         end
       end
 
       control '8.1.13 Collect Successful File System Mounts' do
         it 'configures audit rules to collect successful filesystem mounts' do
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=mounts syscall=mount/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=mounts syscall=mount/)
         end
       end
 
       control '8.1.14 Collect File Deletion Events by User' do
         it 'configures audit rules to collect file deletion events per user' do
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=delete syscall=rename,unlink,unlinkat,renameat/)
-          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) f24!=0 key=delete syscall=unlink,rename,unlinkat,renameat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=delete syscall=rename,unlink,unlinkat,renameat/)
+          expect(command('/sbin/auditctl -l').stdout).to match(/^LIST_RULES: exit,always arch=.* auid>=500 \(0x1f4\) (f24!=0|auid!=-1 \(0xffffffff\)) key=delete syscall=unlink,rename,unlinkat,renameat/)
         end
       end
 
