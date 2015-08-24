@@ -298,16 +298,16 @@ control_group '4 Additional Process Hardening' do
   end
 
   control '4.5 Activate AppArmor' do
-    it 'is running the apparmor service' do
-      expect(service('apparmor')).to be_running
-    end
-
-    it 'enables the apparmor service' do
-      expect(service('apparmor')).to be_enabled
+    it 'has apparmor loaded' do
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^apparmor module is loaded./)
     end
 
     it 'has apparmor loaded' do
-      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^apparmor module is loaded./)
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^0 profiles are in complain mode./)
+    end
+
+    it 'has apparmor loaded' do
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^0 processes are unconfined but have a profile defined./)
     end
   end
 end
