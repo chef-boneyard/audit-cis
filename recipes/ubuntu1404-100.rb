@@ -167,9 +167,9 @@ control_group '2 Filesystem Configuration' do
   control '2.25 Disable Automounting' do
     it 'has no start conditions for autofs' do
       if initctl_autofs.exit_status.to_i > 0
-        expect(initctl_autofs.stdout).to match(/initctl: Unknown job: autofs/)
+        expect(initctl_autofs.stderr).to match(/initctl: Unknown job: autofs/)
       else
-        expect(initctl_autofs.stdout).to_not match(/start on runlevel/)
+        expect(initctl_autofs.stderr).to_not match(/start on runlevel/)
       end
     end
   end
