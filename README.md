@@ -1,5 +1,8 @@
 # audit-cis
 
+[![Build Status](https://travis-ci.org/chef-cookbooks/audit-cis.svg?branch=master)](https://travis-ci.org/chef-cookbooks/audit-cis)
+[![Cookbook Version](https://img.shields.io/cookbook/v/audit-cis.svg)](https://supermarket.chef.io/cookbooks/audit-cis)
+
 This cookbook implements recipes that perform a Chef Audit Mode check for the CIS Benchmarks. Each recipe represents an entire benchmark's implementation. They are intended to be run wholesale against the target platform. The check may fail depending on the base OS installation.
 
 This cookbook is intended to be used only with Chef's audit mode and should not make any changes to the system. Implementation of the benchmarks is up to individuals and organizations security policy. This cookbook does not perform any sort of "scoring" according to the CIS Benchmarks.
