@@ -1,3 +1,7 @@
+audit-cis Cookbook CHANGELOG
+============================
+This file is used to list changes made in each version of the audit-cis cookbook.
+
 ## v0.4.0
 
 * Add a recipe for Ubuntu 14.04
