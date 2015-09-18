@@ -10,3 +10,13 @@ LineLength:
   Enabled: false
 MethodLength:
   Enabled: false
+SingleSpaceBeforeFirstArg:
+  Enabled: false
+Style/RegexpLiteral:
+  Enabled: false
+Style/Next:
+  Enabled: false
+Style/FileName:
+  Enabled: false
+Style/Documentation:
+  Enabled: false

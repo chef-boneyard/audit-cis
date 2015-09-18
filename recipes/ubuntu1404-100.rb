@@ -314,7 +314,7 @@ end
 
 control_group '5 OS Services' do
   # if the file doesn't exist, then various services aren't configured
-  let(:inetd_exists) { File.exists?('/etc/inetd.conf') }
+  let(:inetd_exists) { File.exist?('/etc/inetd.conf') }
   let(:inetd_conf) { file('/etc/inetd.conf') }
 
   context '5.1 Ensure Legacy Services are not enabled' do
@@ -655,7 +655,7 @@ control_group '7 Network configuration and Firewalls' do
     control '7.1.2 Disable Send Packet Redirects' do
       it 'does not have send packet redirects enabled in sysctl' do
         expect(command('/sbin/sysctl net.ipv4.conf.all.send_redirects').stdout).to match(/^net.ipv4.conf.all.send_redirects = 0/)
-      expect(command('/sbin/sysctl net.ipv4.conf.default.send_redirects').stdout).to match(/^net.ipv4.conf.default.send_redirects = 0/)
+        expect(command('/sbin/sysctl net.ipv4.conf.default.send_redirects').stdout).to match(/^net.ipv4.conf.default.send_redirects = 0/)
       end
     end
   end
@@ -1322,19 +1322,19 @@ control_group '10 User Accounts and Environment' do
     control '10.1.1 Set Password Expiration Days' do
       it 'sets the PASS_MAX_DAYS to 90 or less' do
         login_defs.content.match(/^PASS_MAX_DAYS\s+\b(\d*)\b/)
-        expect($1.to_i).to be <= 90
+        expect(Regexp.last_match(1).to_i).to be <= 90
       end
     end
 
     control '10.1.2 Set Password Change Minimum Number of Days' do
       it 'sets the PASS_MIN_DAYS to 7 or more' do
         login_defs.content.match(/^PASS_MIN_DAYS\s+\b(\d*)\b/)
-        expect($1.to_i).to be >= 7
+        expect(Regexp.last_match(1).to_i).to be >= 7
       end
     end
 
     control '10.2 Disable System Accounts' do
-      let(:cmd) { command('egrep -v "^\+" /etc/passwd | awk -F: \'($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $3<500 && $7!="/usr/sbin/nologin" && $7!="/bin/false") {print}\'')}
+      let(:cmd) { command('egrep -v "^\+" /etc/passwd | awk -F: \'($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $3<500 && $7!="/usr/sbin/nologin" && $7!="/bin/false") {print}\'') }
 
       it 'does not have system accounts without nologin or false as the shell' do
         expect(cmd.stdout).to be_empty
@@ -1358,7 +1358,7 @@ control_group '10 User Accounts and Environment' do
 
       it 'locks inactive user accounts' do
         useradd_defaults.stdout.match(/INACTIVE=(\d*)/)
-        expect($1.to_i).to be >= 35
+        expect(Regexp.last_match(1).to_i).to be >= 35
       end
     end
   end
@@ -1497,17 +1497,17 @@ control_group '13 Review User and Group Settings' do
   let(:group)   { file('/etc/group')   }
   let(:shadow)  { file('/etc/shadow')  }
   let(:gshadow) { file('/etc/gshadow') }
-  let(:passwd_uids)  { Etc::Passwd.map   {|u| u.uid} }
-  let(:passwd_names) { Etc::Passwd.map   {|u| u.name} }
-  let(:passwd_gids)  { Etc::Group.map    {|g| g.gid} }
-  let(:group_names)  { Etc::Group.map    {|g| g.name} }
-  let(:shadow_gid)   { Etc::Group.select {|g| g.gid if g.name == 'shadow'} }
+  let(:passwd_uids)  { Etc::Passwd.map(&:uid) }
+  let(:passwd_names) { Etc::Passwd.map(&:name) }
+  let(:passwd_gids)  { Etc::Group.map(&:gid) }
+  let(:group_names)  { Etc::Group.map(&:name) }
+  let(:shadow_gid)   { Etc::Group.select { |g| g.gid if g.name == 'shadow' } }
 
   let(:user_dirs) do
     ud = {}
     Etc::Passwd.each do |u|
-      unless (%w(root halt sync shutdown).include?(u.name) ||
-        u.shell =~ /(\/sbin\/nologin|\/bin\/false)/)
+      unless %w(root halt sync shutdown).include?(u.name) ||
+             u.shell =~ /(\/sbin\/nologin|\/bin\/false)/
         ud[u.name] = u.dir
       end
     end
@@ -1527,7 +1527,7 @@ control_group '13 Review User and Group Settings' do
   end
 
   control '13.3 Verify No Legacy "+" Entries Exist in /etc/shadow File' do
-        it 'does not have entries starting with + in /etc/shadow' do
+    it 'does not have entries starting with + in /etc/shadow' do
       expect(shadow.content).to_not match(/^\+:/)
     end
   end
@@ -1589,7 +1589,7 @@ control_group '13 Review User and Group Settings' do
   control '13.9 Check Permissions on User .netrc Files' do
     it 'does not have user .netrc or user .netrc have correct permissions' do
       user_dirs.each_value do |user_dir|
-        if File.exists?("#{user_dir}/.netrc")
+        if File.exist?("#{user_dir}/.netrc")
           expect(file("#{user_dir}/.netrc")).to_not be_readable.by('group')
           expect(file("#{user_dir}/.netrc")).to_not be_writable.by('group')
           expect(file("#{user_dir}/.netrc")).to_not be_executable.by('group')
@@ -1612,7 +1612,7 @@ control_group '13 Review User and Group Settings' do
   control '13.11 Check Groups in /etc/passwd' do
     it 'has a group for all users' do
       passwd_gids.each do |group|
-        expect{Etc.getgrgid(group)}.to_not raise_error
+        expect { Etc.getgrgid(group) }.to_not raise_error
       end
     end
   end
@@ -1631,25 +1631,25 @@ control_group '13 Review User and Group Settings' do
 
   control '13.14 Check for Duplicate UIDs' do
     it 'does not have duplicate UIDs' do
-      expect(passwd_uids.find_all {|u| passwd_uids.count(u) > 1}).to be_empty
+      expect(passwd_uids.find_all { |u| passwd_uids.count(u) > 1 }).to be_empty
     end
   end
 
   control '13.15 Check for Duplicate GIDs' do
     it 'does not have duplicate GIDs' do
-      expect(passwd_gids.find_all {|g| passwd_gids.count(g) > 1}).to be_empty
+      expect(passwd_gids.find_all { |g| passwd_gids.count(g) > 1 }).to be_empty
     end
   end
 
   control '13.16 Check for Duplicate User Names' do
     it 'does not have duplicate user names' do
-      expect(passwd_names.find_all {|u| passwd_names.count(u) > 1}).to be_empty
+      expect(passwd_names.find_all { |u| passwd_names.count(u) > 1 }).to be_empty
     end
   end
 
   control '13.17 Check for Duplicate Group Names' do
     it 'does not have duplicate group names' do
-      expect(group_names.find_all {|g| group_names.count(g) > 1}).to be_empty
+      expect(group_names.find_all { |g| group_names.count(g) > 1 }).to be_empty
     end
   end
 
@@ -1671,7 +1671,7 @@ control_group '13 Review User and Group Settings' do
 
   control '13.20 Ensure shadow group is empty' do
     it 'does not have any users in the shadow group' do
-      expect(Etc::Passwd.select {|u| u.name if u.gid == shadow_gid}).to be_empty
+      expect(Etc::Passwd.select { |u| u.name if u.gid == shadow_gid }).to be_empty
     end
   end
 end

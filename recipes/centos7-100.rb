@@ -254,7 +254,6 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
     end
 
     control '1.6 Additional Process Hardening' do
-
       it '1.6.1 Restrict Core Dumps' do
         expect(file('/etc/security/limits.conf')).to match(/\*\s+hard\s+core\s+0/)
         expect(command('/sbin/sysctl fs.suid_dumpable').stdout).to match(/^fs\.suid_dumpable = 0/)
@@ -483,7 +482,7 @@ control_group '3 Special Purpose Services' do
     end
   end
 
-  control '3.13 Remove Samba'  do
+  control '3.13 Remove Samba' do
     it 'does not have the samba package installed' do
       expect(package('samba')).to_not be_installed
     end
@@ -1021,7 +1020,7 @@ control_group '7 User Accounts and Environment' do
   end
 
   control '7.2 Disable System Accounts' do
-    let(:cmd) { command('egrep -v "^\+" /etc/passwd | awk -F: \'($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $3<500 && $7!="/sbin/nologin") {print}\'')}
+    let(:cmd) { command('egrep -v "^\+" /etc/passwd | awk -F: \'($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $3<500 && $7!="/sbin/nologin") {print}\'') }
 
     it 'does not have system accounts without nologin as shell' do
       expect(cmd.stdout).to be_empty
@@ -1048,7 +1047,6 @@ control_group '7 User Accounts and Environment' do
     it 'sets inactivity to 35 days by default' do
       expect(file('/etc/default/useradd').content).to match(/^INACTIVE=35/)
     end
-
   end
 end
 
@@ -1175,16 +1173,16 @@ control_group '9 System Maintenance' do
 
   control '9.2 Review User and Group Settings' do
     let(:root_path) { command('su - root -c "echo $PATH"') }
-    let(:passwd_uids)  { Etc::Passwd.map {|u| u.uid} }
-    let(:passwd_names) { Etc::Passwd.map {|u| u.name} }
-    let(:passwd_gids)  { Etc::Group.map  {|g| g.gid} }
-    let(:group_names)  { Etc::Group.map  {|g| g.name} }
+    let(:passwd_uids)  { Etc::Passwd.map(&:uid) }
+    let(:passwd_names) { Etc::Passwd.map(&:name) }
+    let(:passwd_gids)  { Etc::Group.map(&:gid) }
+    let(:group_names)  { Etc::Group.map(&:name) }
 
     let(:user_dirs) do
       ud = {}
       Etc::Passwd.each do |u|
-        unless (%w(root halt sync shutdown).include?(u.name) ||
-                u.shell =~ /(\/sbin\/nologin|\/bin\/false)/)
+        unless %w(root halt sync shutdown).include?(u.name) ||
+               u.shell =~ /(\/sbin\/nologin|\/bin\/false)/
           ud[u.name] = u.dir
         end
       end
@@ -1249,7 +1247,7 @@ control_group '9 System Maintenance' do
 
     it '9.2.9 Check Permissions on User .netrc Files' do
       user_dirs.each_value do |user_dir|
-        if File.exists?("#{user_dir}/.netrc")
+        if File.exist?("#{user_dir}/.netrc")
           expect(file("#{user_dir}/.netrc")).to_not be_readable.by('group')
           expect(file("#{user_dir}/.netrc")).to_not be_writable.by('group')
           expect(file("#{user_dir}/.netrc")).to_not be_executable.by('group')
@@ -1268,7 +1266,7 @@ control_group '9 System Maintenance' do
 
     it '9.2.11 Check Groups in /etc/passwd' do
       passwd_gids.each do |group|
-        expect{Etc.getgrgid(group)}.to_not raise_error
+        expect { Etc.getgrgid(group) }.to_not raise_error
       end
     end
 
@@ -1281,11 +1279,11 @@ control_group '9 System Maintenance' do
     end
 
     it '9.2.14 Check for Duplicate UIDs' do
-      expect(passwd_uids.find_all {|u| passwd_uids.count(u) > 1}).to be_empty
+      expect(passwd_uids.find_all { |u| passwd_uids.count(u) > 1 }).to be_empty
     end
 
     it '9.2.15 Check for Duplicate GIDs' do
-      expect(passwd_gids.find_all {|g| passwd_gids.count(g) > 1}).to be_empty
+      expect(passwd_gids.find_all { |g| passwd_gids.count(g) > 1 }).to be_empty
     end
 
     it '9.2.16 Check That Reserved UIDs Are Assigned to System Accounts' do
@@ -1301,11 +1299,11 @@ control_group '9 System Maintenance' do
     end
 
     it '9.2.17 Check for Duplicate User Names' do
-      expect(passwd_names.find_all {|u| passwd_names.count(u) > 1}).to be_empty
+      expect(passwd_names.find_all { |u| passwd_names.count(u) > 1 }).to be_empty
     end
 
     it '9.2.18 Check for Duplicate Group Names' do
-      expect(group_names.find_all {|g| group_names.count(g) > 1}).to be_empty
+      expect(group_names.find_all { |g| group_names.count(g) > 1 }).to be_empty
     end
 
     it '9.2.19 Check for Presence of User .netrc Files' do
