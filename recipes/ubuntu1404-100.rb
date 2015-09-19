@@ -167,9 +167,9 @@ control_group '2 Filesystem Configuration' do
   control '2.25 Disable Automounting' do
     it 'has no start conditions for autofs' do
       if initctl_autofs.exit_status.to_i > 0
-        expect(initctl_autofs.stdout).to match(/initctl: Unknown job: autofs/)
+        expect(initctl_autofs.stderr).to match(/initctl: Unknown job: autofs/)
       else
-        expect(initctl_autofs.stdout).to_not match(/start on runlevel/)
+        expect(initctl_autofs.stderr).to_not match(/start on runlevel/)
       end
     end
   end
@@ -298,16 +298,16 @@ control_group '4 Additional Process Hardening' do
   end
 
   control '4.5 Activate AppArmor' do
-    it 'is running the apparmor service' do
-      expect(service('apparmor')).to be_running
-    end
-
-    it 'enables the apparmor service' do
-      expect(service('apparmor')).to be_enabled
+    it 'has apparmor loaded' do
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^apparmor module is loaded./)
     end
 
     it 'has apparmor loaded' do
-      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^apparmor module is loaded./)
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^0 profiles are in complain mode./)
+    end
+
+    it 'has apparmor loaded' do
+      expect(command('/usr/sbin/apparmor_status').stdout).to match(/^0 processes are unconfined but have a profile defined./)
     end
   end
 end
