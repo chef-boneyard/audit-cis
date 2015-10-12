@@ -255,7 +255,7 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
 
     control '1.6 Additional Process Hardening' do
       it '1.6.1 Restrict Core Dumps' do
-        expect(file('/etc/security/limits.conf').content).to match(/\*\s+hard\s+core\s+0/)
+        expect(command('cat /etc/security/limits.conf /etc/security/limits.d/*.conf').stdout).to match(/\*\s+hard\s+core\s+0/)
         expect(command('/sbin/sysctl fs.suid_dumpable').stdout).to match(/^fs\.suid_dumpable = 0/)
       end
 

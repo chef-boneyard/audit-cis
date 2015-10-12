@@ -261,7 +261,7 @@ end
 control_group '4 Additional Process Hardening' do
   control '4.1 Restrict Core Dumps' do
     it 'restricts core dumps in /etc/security/limits.conf' do
-      expect(file('/etc/security/limits.conf').content).to match(/\*\s+hard\s+core\s+0/)
+      expect(command('cat /etc/security/limits.conf /etc/security/limits.d/*.conf').stdout).to match(/\*\s+hard\s+core\s+0/)
     end
 
     it 'disables core dumps in sysctl' do
