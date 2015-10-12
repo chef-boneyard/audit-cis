@@ -1076,7 +1076,8 @@ control_group '7 User Accounts and Environment' do
 
   control '7.4 Set Default umask for Users' do
     it 'check umask in /etc/bashrc' do
-      expect(file('/etc/bashrc').content).to match(/umask 077/)
+      command('grep umask /etc/bashrc /etc/profile.d/*.sh | tail -n1').stdout.match(/umask\s+(\d+)/)
+      expect(Regexp.last_match(1).to_i(8) & 077).to be 077
     end
   end
 
