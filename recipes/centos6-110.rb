@@ -214,19 +214,19 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
       let(:selinux_config) { file('/etc/selinux/config') }
 
       it '1.4.1 Enable SELinux in /etc/grub.conf' do
-        expect(grub_conf).to_not match(/selinux=0/)
-        expect(grub_conf).to_not match(/enforcing=0/)
+        expect(grub_conf.content).to_not match(/selinux=0/)
+        expect(grub_conf.content).to_not match(/enforcing=0/)
       end
 
       it '1.4.2 Set the SELinux State' do
-        expect(selinux_config).to match(/^SELINUX=enforcing/)
+        expect(selinux_config.content).to match(/^SELINUX=enforcing/)
         expect(sestatus.stdout).to match(/^SELinux status:\s+enabled/)
         expect(sestatus.stdout).to match(/^Current mode:\s+enforcing/)
         expect(sestatus.stdout).to match(/^Mode from config file:\s+enforcing/)
       end
 
       it '1.4.3 Set the SELinux Policy' do
-        expect(selinux_config).to match(/^SELINUXTYPE=targeted/)
+        expect(selinux_config.content).to match(/^SELINUXTYPE=targeted/)
         expect(sestatus.stdout).to contain('Policy from config file: targeted')
       end
 
@@ -259,23 +259,23 @@ control_group '1 Install Updates, Patches and Additional Security Software' do
       end
 
       it '1.5.3 Set Boot Loader Password' do
-        expect(grub_conf).to match(/^password/)
+        expect(grub_conf.content).to match(/^password/)
       end
 
       it '1.5.4 Require Authentication for Single-User Mode' do
-        expect(sysconfig_init).to match(/^SINGLE=\/sbin\/sulogin/)
-        expect(sysconfig_init).to match(/^PROMPT=no/)
+        expect(sysconfig_init.content).to match(/^SINGLE=\/sbin\/sulogin/)
+        expect(sysconfig_init.content).to match(/^PROMPT=no/)
       end
 
       it '1.5.5 Disable Interactive Boot' do
-        expect(sysconfig_init).to match(/^PROMPT=no/)
+        expect(sysconfig_init.content).to match(/^PROMPT=no/)
       end
     end
   end
 
   control '1.6 Additional Process Hardening' do
     it '1.6.1 Restrict Core Dumps' do
-      expect(file('/etc/security/limits.conf')).to match(/\*\s+hard\s+core\s+0/)
+      expect(command('cat /etc/security/limits.conf /etc/security/limits.d/*.conf').stdout).to match(/\*\s+hard\s+core\s+0/)
       expect(command('/sbin/sysctl fs.suid_dumpable').stdout).to match(/^fs\.suid_dumpable = 0/)
     end
 
@@ -429,16 +429,16 @@ control_group '3 Special Purpose Services' do
     end
 
     it 'has the restrict parameters in the ntp config' do
-      expect(ntp_conf).to match(/restrict default/)
-      expect(ntp_conf).to match(/restrict -6 default/)
+      expect(ntp_conf.content).to match(/restrict default/)
+      expect(ntp_conf.content).to match(/restrict -6 default/)
     end
 
     it 'has at least one NTP server defined' do
-      expect(ntp_conf).to match(/server/)
+      expect(ntp_conf.content).to match(/server/)
     end
 
     it 'is configured to start ntpd as a nonprivileged user' do
-      expect(file('/etc/sysconfig/ntpd')).to match(/OPTIONS=.*-u /)
+      expect(file('/etc/sysconfig/ntpd').content).to match(/OPTIONS=.*-u /)
     end
   end
 
@@ -714,7 +714,7 @@ control_group '5 Logging and Auditing' do
     # configuration, especially if using the community `rsyslog`
     # cookbook, as that writes to /etc/rsyslog.d/remote.conf.
     it '5.1.5 Configure rsyslog to Send Logs to a Remote Log Host' do
-      expect(file('/etc/rsyslog.conf')).to match(/\*\.\* @/)
+      expect(file('/etc/rsyslog.conf').content).to match(/\*\.\* @/)
     end
 
     it '5.1.6 Accept Remote rsyslog Messages Only on Designated Log Hosts' do
@@ -730,17 +730,17 @@ control_group '5 Logging and Auditing' do
     context 'Level 2' do
       context '5.2.1 Configure Data Retention' do
         it '5.2.1.1 Configure Audit Log Storage Size' do
-          expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file = \d+/)
+          expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file = \d+/)
         end
 
         it '5.2.1.2 Disable System on Audit Log Full' do
-          expect(file('/etc/audit/auditd.conf')).to match(/^space_left_action = email/)
-          expect(file('/etc/audit/auditd.conf')).to match(/^action_mail_acct = root/)
-          expect(file('/etc/audit/auditd.conf')).to match(/^admin_space_left_action = halt/)
+          expect(file('/etc/audit/auditd.conf').content).to match(/^space_left_action = email/)
+          expect(file('/etc/audit/auditd.conf').content).to match(/^action_mail_acct = root/)
+          expect(file('/etc/audit/auditd.conf').content).to match(/^admin_space_left_action = halt/)
         end
 
         it '5.2.1.3 Keep All Auditing Information' do
-          expect(file('/etc/audit/auditd.conf')).to match(/^max_log_file_action = keep_logs/)
+          expect(file('/etc/audit/auditd.conf').content).to match(/^max_log_file_action = keep_logs/)
         end
       end if level_two_enabled
 
@@ -846,12 +846,12 @@ control_group '5 Logging and Auditing' do
 
   control '5.3 Configure logrotate' do
     it 'system logs have entries in /etc/logrotate.d/syslog' do
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/cron/)
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/boot.log/)
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/spooler/)
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/maillog/)
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/secure/)
-      expect(file('/etc/logrotate.d/syslog')).to match(/\/var\/log\/messages/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/cron/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/boot.log/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/spooler/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/maillog/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/secure/)
+      expect(file('/etc/logrotate.d/syslog').content).to match(/\/var\/log\/messages/)
     end
   end
 end
@@ -1003,11 +1003,11 @@ control_group '6 System Access, Authentication and Authorization' do
 
     it '6.3.2 Set Password Creation Requirement Parameters Using pam_cracklib' do
       expect(system_auth.content).to match(/pam_pwquality.so/)
-      expect(file('/etc/security/pwquality.conf')).to match(/minlen=14/)
-      expect(file('/etc/security/pwquality.conf')).to match(/dcredit=-1/)
-      expect(file('/etc/security/pwquality.conf')).to match(/ucredit=-1/)
-      expect(file('/etc/security/pwquality.conf')).to match(/ocredit=-1/)
-      expect(file('/etc/security/pwquality.conf')).to match(/lcredit=-1/)
+      expect(file('/etc/security/pwquality.conf').content).to match(/minlen=14/)
+      expect(file('/etc/security/pwquality.conf').content).to match(/dcredit=-1/)
+      expect(file('/etc/security/pwquality.conf').content).to match(/ucredit=-1/)
+      expect(file('/etc/security/pwquality.conf').content).to match(/ocredit=-1/)
+      expect(file('/etc/security/pwquality.conf').content).to match(/lcredit=-1/)
     end
 
     it '6.3.3 Set Lockout for Failed Password Attempts' do
@@ -1044,15 +1044,18 @@ control_group '7 User Accounts and Environment' do
     let(:login_defs) { file('/etc/login.defs') }
 
     it '7.1.1 Set Password Expiration Days' do
-      expect(login_defs.content).to match(/^PASS_MAX_DAYS\s+[1-9]{2}/)
+      login_defs.content.match(/^PASS_MAX_DAYS\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be <= 90
     end
 
     it '7.1.2 Set Password Change Minimum Number of Days' do
-      expect(login_defs.content).to match(/^PASS_MIN_DAYS\s+[1-7]/)
+      login_defs.content.match(/^PASS_MIN_DAYS\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be >= 7
     end
 
     it '7.1.3 Set Password Expiring Warning Days' do
-      expect(login_defs.content).to match(/^PASS_WARN_AGE\s+([7-9]|[1-9]\d+)/)
+      login_defs.content.match(/^PASS_WARN_AGE\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be >= 7
     end
   end
 
@@ -1076,7 +1079,8 @@ control_group '7 User Accounts and Environment' do
 
   control '7.4 Set Default umask for Users' do
     it 'check umask in /etc/bashrc' do
-      expect(file('/etc/bashrc').content).to match(/umask 077/)
+      command('grep umask /etc/bashrc /etc/profile.d/*.sh | tail -n1').stdout.match(/umask\s+(\d+)/)
+      expect(Regexp.last_match(1).to_i(8) & 077).to be 077
     end
   end
 
@@ -1231,15 +1235,15 @@ control_group '9 System Maintenance' do
     end
 
     it '9.2.2 Verify No Legacy "+" Entries Exist in /etc/passwd File' do
-      expect(passwd).to_not match(/^\+:/)
+      expect(passwd.content).to_not match(/^\+:/)
     end
 
     it '9.2.3 Verify No Legacy "+" Entries Exist in /etc/shadow File' do
-      expect(shadow).to_not match(/^\+:/)
+      expect(shadow.content).to_not match(/^\+:/)
     end
 
     it '9.2.4 Verify No Legacy "+" Entries Exist in /etc/group File' do
-      expect(group).to_not match(/^\+:/)
+      expect(group.content).to_not match(/^\+:/)
     end
 
     it '9.2.5 Verify No UID 0 Accounts Exist Other Than root' do
