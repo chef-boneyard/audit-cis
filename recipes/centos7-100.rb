@@ -1007,15 +1007,18 @@ control_group '7 User Accounts and Environment' do
     let(:login_defs) { file('/etc/login.defs') }
 
     it '7.1.1 Set Password Expiration Days' do
-      expect(login_defs.content).to match(/^PASS_MAX_DAYS\s+[1-9]{2}/)
+      login_defs.content.match(/^PASS_MAX_DAYS\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be <= 90
     end
 
     it '7.1.2 Set Password Change Minimum Number of Days' do
-      expect(login_defs.content).to match(/^PASS_MIN_DAYS\s+[1-7]/)
+      login_defs.content.match(/^PASS_MIN_DAYS\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be >= 7
     end
 
     it '7.1.3 Set Password Expiring Warning Days' do
-      expect(login_defs.content).to match(/^PASS_WARN_AGE\s+([7-9]|[1-9]\d+)/)
+      login_defs.content.match(/^PASS_WARN_AGE\s+\b(\d*)\b/)
+      expect(Regexp.last_match(1).to_i).to be >= 7
     end
   end
 
